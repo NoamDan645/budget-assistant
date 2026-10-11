@@ -2,8 +2,8 @@ from langchain_core.messages import SystemMessage
 from langgraph.graph import MessagesState, StateGraph, START
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from expense_model import SYSTEM_PROMPT, create_model
-from expense_tools import TOOLS
+from backend.expense_model import SYSTEM_PROMPT, create_model
+from backend.expense_tools import TOOLS
 from langgraph.checkpoint.memory import InMemorySaver
 
 def create_graph():

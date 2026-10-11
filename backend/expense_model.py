@@ -1,10 +1,9 @@
-from pathlib import Path
-
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
-from categories import CATEGORIES
-from expense_tools import TOOLS
+from backend.categories import CATEGORIES
+from backend.expense_tools import TOOLS
+from backend.paths import ENV_PATH
 
 
 SYSTEM_PROMPT = f"""
@@ -61,7 +60,7 @@ SYSTEM_PROMPT = f"""
 
 
 def create_model():
-    load_dotenv(Path(__file__).with_name(".env"))
+    load_dotenv(ENV_PATH)
 
     llm = ChatOpenAI(
         model="gpt-4o",

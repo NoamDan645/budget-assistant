@@ -1,12 +1,12 @@
 import sqlite3
 from contextlib import closing
-from pathlib import Path
-from categories import CATEGORIES
-from date_utils import normalize_expense_date, normalize_summary_month
-DB_PATH = Path(__file__).with_name("expenses.db")
+from backend.categories import CATEGORIES
+from backend.date_utils import normalize_expense_date, normalize_summary_month
+from backend.paths import DB_PATH
 
 
 def init_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(DB_PATH)) as connection:
         connection.execute("""
             CREATE TABLE IF NOT EXISTS expenses (

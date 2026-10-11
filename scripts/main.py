@@ -1,8 +1,8 @@
 from bidi.algorithm import get_display
 from langchain_core.messages import HumanMessage
 
-from budget_store import init_db
-from expense_graph import create_graph
+from backend.budget_store import init_db
+from backend.expense_graph import create_graph
 
 
 def print_hebrew(text: str):

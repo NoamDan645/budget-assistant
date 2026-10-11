@@ -1,12 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-from budget_store import init_db
-from expense_graph import create_graph
+from backend.budget_store import init_db
+from backend.expense_graph import create_graph
+from backend.paths import FRONTEND_DIR
 
 
 app = FastAPI(title="מנהל ההוצאות")
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 init_db()
 graph = create_graph()
@@ -47,3 +51,9 @@ def chat(request: ChatRequest):
         "reply": result["messages"][-1].content,
         "thread_id": request.thread_id,
     }
+@app.get("/", response_class=FileResponse)
+def home():
+    return FileResponse(
+        FRONTEND_DIR / "index.html",
+        media_type="text/html",
+    )
