@@ -5,6 +5,9 @@ from budget_store import (
     get_expenses ,
     get_category_summary,
     update_expense_category,
+    update_expense_details,
+    save_monthly_budget,
+    get_monthly_budget,
 )
 
 @tool
@@ -103,11 +106,116 @@ def change_expense_category(
         f"הקטגוריה של הוצאה עם מזהה {expense_id} "
         f"עודכנה ל-{category}"
     )
+@tool
+def edit_expense(
+    expense_id: int,
+    amount_agorot: int | None = None,
+    expense_date: str | None = None,
+) -> str:
+    """תקן סכום או תאריך של הוצאה קיימת לפי המזהה שלה.
 
+    amount_agorot: סכום חדש באגורות, רק אם התבקש שינוי סכום.
+    expense_date: תאריך חדש, רק אם התבקש שינוי תאריך.
+        אפשר YYYY-MM-DD, היום, אתמול או שלשום.
+    """
+    saved_date = (
+        normalize_expense_date(expense_date)
+        if expense_date is not None
+        else None
+    )
+
+    update_expense_details(
+        expense_id=expense_id,
+        amount_agorot=amount_agorot,
+        expense_date=saved_date,
+    )
+
+    changes = []
+
+    if amount_agorot is not None:
+        changes.append(f"סכום: {format_shekels(amount_agorot)} ₪")
+
+    if saved_date is not None:
+        changes.append(f"תאריך: {saved_date}")
+
+    return (
+        f"הוצאה עם מזהה {expense_id} עודכנה. "
+        + ", ".join(changes)
+    )
+
+@tool
+def set_monthly_budget(
+    amount_agorot: int,
+    month: str = "החודש",
+) -> str:
+    """הגדר או עדכן תקציב כולל לחודש מסוים.
+
+    amount_agorot: התקציב באגורות.
+    month: חודש בפורמט YYYY-MM או המילה החודש.
+        אם לא צוין חודש, התקציב מיועד לחודש הנוכחי.
+    """
+    saved_month = normalize_summary_month(month)
+
+    save_monthly_budget(
+        month=saved_month,
+        amount_agorot=amount_agorot,
+    )
+
+    return (
+        f"התקציב לחודש {saved_month} נקבע על "
+        f"{format_shekels(amount_agorot)} ₪"
+    )
+@tool
+def budget_status(month: str = "החודש") -> str:
+    """בדוק תקציב, הוצאות ויתרה לחודש מסוים.
+
+    month: חודש בפורמט YYYY-MM או המילה החודש.
+        ללא חודש מפורש, בדוק את החודש הנוכחי.
+    """
+    month = normalize_summary_month(month)
+    budget = get_monthly_budget(month)
+
+    if budget is None:
+        return f"לא הוגדר תקציב לחודש {month}."
+
+    summary = get_category_summary(month)
+    spent = sum(row["total_agorot"] for row in summary)
+
+    lines = [
+        f"מצב התקציב לחודש {month}:",
+        f"תקציב: {format_shekels(budget)} ₪",
+        f"הוצאות: {format_shekels(spent)} ₪",
+    ]
+
+    if spent <= budget:
+        remaining = budget - spent
+        lines.append(
+            f"נותרו: {format_shekels(remaining)} ₪"
+        )
+    else:
+        overrun = spent - budget
+        lines.append(
+            f"חריגה מהתקציב: {format_shekels(overrun)} ₪"
+        )
+
+    undated_count = sum(
+        expense["expense_date"] is None
+        for expense in get_expenses()
+    )
+
+    if undated_count:
+        lines.append(
+            f"קיימות {undated_count} הוצאות ללא תאריך, "
+            "שאינן כלולות בחישוב."
+        )
+
+    return "\n".join(lines)
 TOOLS = [
     record_expense,
     list_expenses,
     summarize_expenses,
     change_expense_category,
-
+    edit_expense,
+    set_monthly_budget,
+    budget_status,
 ]

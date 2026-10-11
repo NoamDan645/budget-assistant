@@ -31,7 +31,13 @@ def init_db():
                 ALTER TABLE expenses
                 ADD COLUMN expense_date TEXT
             """)
-
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS monthly_budgets (
+                month TEXT PRIMARY KEY,
+                amount_agorot INTEGER NOT NULL
+                    CHECK (amount_agorot > 0)
+            )
+        """)
         connection.commit()
 
 def add_expense(
@@ -130,3 +136,77 @@ def update_expense_category(
             raise ValueError(f"לא נמצאה הוצאה עם מזהה {expense_id}")
 
         connection.commit()
+
+def update_expense_details(
+    expense_id: int,
+    amount_agorot: int | None = None,
+    expense_date: str | None = None,
+) -> None:
+    if type(expense_id) is not int or expense_id <= 0:
+        raise ValueError("מזהה ההוצאה חייב להיות מספר שלם וחיובי")
+
+    if amount_agorot is None and expense_date is None:
+        raise ValueError("יש לציין סכום או תאריך לתיקון")
+
+    if amount_agorot is not None:
+        if type(amount_agorot) is not int or amount_agorot <= 0:
+            raise ValueError("הסכום חייב להיות מספר שלם וחיובי של אגורות")
+
+    if expense_date is not None:
+        expense_date = normalize_expense_date(expense_date)
+
+    with closing(sqlite3.connect(DB_PATH)) as connection:
+        cursor = connection.execute(
+            """
+            UPDATE expenses
+            SET
+                amount_agorot = COALESCE(?, amount_agorot),
+                expense_date = COALESCE(?, expense_date)
+            WHERE id = ?
+            """,
+            (amount_agorot, expense_date, expense_id),
+        )
+
+        if cursor.rowcount == 0:
+            raise ValueError(f"לא נמצאה הוצאה עם מזהה {expense_id}")
+
+        connection.commit()
+
+def save_monthly_budget(month: str, amount_agorot: int) -> None:
+    month = normalize_summary_month(month)
+
+    if month is None:
+        raise ValueError("יש לציין חודש לתקציב")
+
+    if type(amount_agorot) is not int or amount_agorot <= 0:
+        raise ValueError("התקציב חייב להיות מספר שלם וחיובי של אגורות")
+
+    with closing(sqlite3.connect(DB_PATH)) as connection:
+        connection.execute(
+            """
+            INSERT INTO monthly_budgets (month, amount_agorot)
+            VALUES (?, ?)
+            ON CONFLICT(month)
+            DO UPDATE SET amount_agorot = excluded.amount_agorot
+            """,
+            (month, amount_agorot),
+        )
+        connection.commit()
+
+def get_monthly_budget(month: str) -> int | None:
+    month = normalize_summary_month(month)
+
+    if month is None:
+        raise ValueError("יש לציין חודש לבדיקת התקציב")
+
+    with closing(sqlite3.connect(DB_PATH)) as connection:
+        row = connection.execute(
+            """
+            SELECT amount_agorot
+            FROM monthly_budgets
+            WHERE month = ?
+            """,
+            (month,),
+        ).fetchone()
+
+        return row[0] if row is not None else None
