@@ -1,6 +1,6 @@
 # Budget Assistant
 
-A conversational personal expense manager in Hebrew, built as a learning project with **Python, LangChain and LangGraph**. · [עברית](README.he.md)
+A conversational personal expense manager in Hebrew, built as a learning project with **Python, LangChain and LangGraph**.
 
 You tell the assistant what you spent in plain language, and it records the expense, assigns a category, and answers questions about your spending.
 
