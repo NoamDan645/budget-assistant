@@ -4,5 +4,5 @@ langgraph==1.2.14
 python-dotenv==1.2.4
 python-bidi==0.6.11
 tzdata==2026.5
-fastapi[standard]
-httpx
+fastapi[standard]==0.165.0
+httpx==0.28.1

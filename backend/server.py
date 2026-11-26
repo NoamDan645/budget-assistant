@@ -1,5 +1,7 @@
+from uuid import uuid4
+
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,9 +18,18 @@ init_db()
 graph = create_graph()
 
 
+MAX_MESSAGE_LENGTH = 2000
+
+
 class ChatRequest(BaseModel):
-    message: str
-    thread_id: str = "budget-chat-1"
+    message: str = Field(max_length=MAX_MESSAGE_LENGTH)
+    # When omitted, the server creates a random thread id and returns it.
+    thread_id: str | None = Field(
+        default=None,
+        min_length=16,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9-]+$",
+    )
 
 
 @app.get("/health")
@@ -36,9 +47,11 @@ def chat(request: ChatRequest):
             detail="ההודעה אינה יכולה להיות ריקה",
         )
 
+    thread_id = request.thread_id or str(uuid4())
+
     config = {
         "configurable": {
-            "thread_id": request.thread_id,
+            "thread_id": thread_id,
         }
     }
 
@@ -49,7 +62,7 @@ def chat(request: ChatRequest):
 
     return {
         "reply": result["messages"][-1].content,
-        "thread_id": request.thread_id,
+        "thread_id": thread_id,
     }
 @app.get("/", response_class=FileResponse)
 def home():
